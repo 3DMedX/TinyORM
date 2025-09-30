@@ -102,3 +102,4 @@ conf.pri
 /todos.csv
 /todos.xlsx
 /vcpkg_installed/
+build/

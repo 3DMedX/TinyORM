@@ -379,6 +379,24 @@ namespace Orm::Tiny
         /*! Perform the actual delete query on this model instance. */
         void performDeleteOnModel();
 
+        /*! Callback triggered before the deletion of the model. */
+        virtual bool beforeDeleteCallback();
+
+        /*! Callback triggered after the deletion of the model. */
+        virtual void afterDeleteCallback();
+
+        /*! Callback triggered before the update of the model. */
+        virtual bool beforeUpdateCallback();
+
+        /*! Callback triggered after the update of the model. */
+        virtual void afterUpdateCallback();
+
+        /*! Callback triggered before the insert of the model. */
+        virtual bool beforeInsertCallback();
+
+        /*! Callback triggered after the insert of the model. */
+        virtual void afterInsertCallback();
+
         /*! Set the keys for a save update query. */
         TinyBuilder<Derived> &
         setKeysForSaveQuery(TinyBuilder<Derived> &query) const;
@@ -924,6 +942,7 @@ namespace Orm::Tiny
 //        if ($this->fireModelEvent('deleting') === false) {
 //            return false;
 //        }
+        if (!beforeDeleteCallback()) return false;
 
         /* Here, we'll touch the owning models, verifying these timestamps get updated
            for the models. This will allow any caching to get broken on the parents
@@ -941,6 +960,7 @@ namespace Orm::Tiny
            the developers may hook into post-delete operations. We will then return
            a boolean true as the delete is presumably successful on the database. */
 //        $this->fireModelEvent('deleted', false);
+        afterDeleteCallback();
 
         return true;
     }
@@ -1632,12 +1652,45 @@ namespace Orm::Tiny
     template<typename Derived, AllRelationsConcept ...AllRelations>
     void Model<Derived, AllRelations...>::performDeleteOnModel()
     {
+
+        beforeDeleteCallback();
+
         /* Ownership of a unique_ptr(), dereferenced and passed down, will be
            destroyed right after this command. */
         model().setKeysForSaveQuery(*newModelQuery()).remove(); // model() needed as it's overridden in the BasePivot
 
         this->exists = false;
+
+        afterDeleteCallback();
     }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    inline bool Model<Derived, AllRelations...>::beforeDeleteCallback() {
+        return true;
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    inline void Model<Derived, AllRelations...>::afterDeleteCallback() {
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    inline bool Model<Derived, AllRelations...>::beforeUpdateCallback() {
+        return true;
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    inline void Model<Derived, AllRelations...>::afterUpdateCallback() {
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    inline bool Model<Derived, AllRelations...>::beforeInsertCallback() {
+        return true;
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    inline void Model<Derived, AllRelations...>::afterInsertCallback() {
+    }
+
 
     template<typename Derived, AllRelationsConcept ...AllRelations>
     TinyBuilder<Derived> &
@@ -1679,8 +1732,10 @@ namespace Orm::Tiny
     bool Model<Derived, AllRelations...>::performInsert(
             const TinyBuilder<Derived> &query)
     {
-//        if (!fireModelEvent("creating"))
-//            return false;
+       // if (!fireModelEvent("creating"))
+       //     return false;
+
+        if (!beforeInsertCallback()) return false;
 
         /* First we'll need to create a fresh query instance and touch the creation and
            update timestamps on this model, which are maintained by us for developer
@@ -1710,6 +1765,7 @@ namespace Orm::Tiny
            during the event. This will allow them to do so and run an update here. */
         this->exists = true;
 
+        afterInsertCallback();
 //        fireModelEvent("created", false);
 
         return true;
@@ -1723,6 +1779,8 @@ namespace Orm::Tiny
            operation if the model does not pass validation. Otherwise, we update. */
 //        if (!fireModelEvent("updating"))
 //            return false;
+        if (!beforeUpdateCallback()) return false;
+
 
         /* First we need to create a fresh query instance and touch the creation and
            update timestamp on the model which are maintained by us for developer
@@ -1742,6 +1800,7 @@ namespace Orm::Tiny
 
             this->syncChanges();
 
+            afterUpdateCallback();
 //            fireModelEvent("updated", false);
         }
 
