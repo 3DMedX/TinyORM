@@ -397,6 +397,9 @@ namespace Orm::Tiny
         /*! Callback triggered after the insert of the model. */
         virtual void afterInsertCallback();
 
+        /*! Callback triggered for validation. */
+        virtual bool validate();
+
         /*! Set the keys for a save update query. */
         TinyBuilder<Derived> &
         setKeysForSaveQuery(TinyBuilder<Derived> &query) const;
@@ -1653,15 +1656,11 @@ namespace Orm::Tiny
     void Model<Derived, AllRelations...>::performDeleteOnModel()
     {
 
-        beforeDeleteCallback();
-
         /* Ownership of a unique_ptr(), dereferenced and passed down, will be
            destroyed right after this command. */
         model().setKeysForSaveQuery(*newModelQuery()).remove(); // model() needed as it's overridden in the BasePivot
 
         this->exists = false;
-
-        afterDeleteCallback();
     }
 
     template<typename Derived, AllRelationsConcept ...AllRelations>
@@ -1689,6 +1688,11 @@ namespace Orm::Tiny
 
     template<typename Derived, AllRelationsConcept ...AllRelations>
     inline void Model<Derived, AllRelations...>::afterInsertCallback() {
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    inline bool Model<Derived, AllRelations...>::validate() {
+        return true;
     }
 
 
@@ -1735,6 +1739,7 @@ namespace Orm::Tiny
        // if (!fireModelEvent("creating"))
        //     return false;
 
+        if (!validate()) return false;
         if (!beforeInsertCallback()) return false;
 
         /* First we'll need to create a fresh query instance and touch the creation and
@@ -1779,6 +1784,7 @@ namespace Orm::Tiny
            operation if the model does not pass validation. Otherwise, we update. */
 //        if (!fireModelEvent("updating"))
 //            return false;
+        if (!validate()) return false;
         if (!beforeUpdateCallback()) return false;
 
 
